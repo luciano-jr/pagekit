@@ -15,7 +15,7 @@ class UserController
      * @Access("user: manage users")
      * @Request({"filter": "array", "page":"int"})
      */
-    public function indexAction($filter = null, $page = 0)
+    public function indexAction($filter = [], $page = 0)
     {
         $roles = $this->getRoles();
         unset($roles[Role::ROLE_AUTHENTICATED]);
@@ -26,11 +26,11 @@ class UserController
                 'name' => 'system/user/admin/user-index.php'
             ],
             '$data' => [
-                'statuses' => User::getStatuses(),
-                'roles' => array_values($roles),
                 'config' => [
+                    'statuses' => User::getStatuses(),
+                    'roles' => array_values($roles),
                     'emailVerification' => App::module('system/user')->config('require_verification'),
-                    'filter' => $filter,
+                    'filter' => (object) $filter,
                     'page' => $page
                 ]
             ]
@@ -58,9 +58,9 @@ class UserController
             ],
             '$data' => [
                 'user' => $user,
-                'statuses' => User::getStatuses(),
-                'roles' => array_values($this->getRoles($user)),
                 'config' => [
+                    'statuses' => User::getStatuses(),
+                    'roles' => array_values($this->getRoles($user)),
                     'emailVerification' => App::module('system/user')->config('require_verification'),
                     'currentUser' => App::user()->id
                 ]

@@ -48,6 +48,8 @@ class View
     {
         $this->events = $events ?: new PrefixEventDispatcher('view.');
         $this->engine = $engine ?: new DelegatingEngine();
+
+        $this->trigger('init', [$this]);
     }
 
     /**
@@ -74,6 +76,16 @@ class View
         }
 
         return $args ? call_user_func_array($this->helpers[$name], $args) : $this->helpers[$name];
+    }
+
+    /**
+     * Gets a global parameter.
+     *
+     * @param  string $name
+     * @return mixed
+     */
+    public function __get($name) {
+        return isset($this->globals[$name]) ? $this->globals[$name] : null;
     }
 
     /**
@@ -196,7 +208,7 @@ class View
         $params = $this->parameters[] = $event->getParameters();
 
         if ($result === null && $this->engine->supports($event->getTemplate())) {
-            $result = $this->engine->render($event->getTemplate(), array_replace(['params' => new ArrObject($params)], $params));
+            $result = $this->engine->render($event->getTemplate(), $params);
         }
 
         array_pop($this->parameters);

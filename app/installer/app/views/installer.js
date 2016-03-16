@@ -1,4 +1,6 @@
-var installer = {
+var Installer = {
+
+    el: '#installer',
 
     data: function () {
         return _.merge({
@@ -23,7 +25,7 @@ var installer = {
 
             if (UIkit.support.animation) {
 
-                var vm = this, current = this.$$[this.step], next = this.$$[step];
+                var vm = this, current = this.$els[this.step], next = this.$els[step];
 
                 this.$compile(next);
 
@@ -39,35 +41,33 @@ var installer = {
             } else {
                 this.$set('step', step);
             }
+
         },
 
-        stepLanguage: function (e) {
-            e.preventDefault();
+        stepLanguage: function () {
 
-            this.$asset({js: [this.$url.route('system/intl/:locale', {locale: this.locale})]}, function () {
-
+            this.$asset({js: [this.$url.route('system/intl/:locale', {locale: this.locale})]}).then(function () {
                 this.$set('option.system.admin.locale', this.locale);
                 this.$set('option.system.site.locale', this.locale);
-
                 this.$locale = window.$locale;
                 this.gotoStep('database');
-
             });
 
         },
 
-        stepDatabase: function (e) {
-            e.preventDefault();
+        stepDatabase: function () {
 
             var database = this.config.database;
+
             Object.keys(database.connections).forEach(function(name) {
                 if (name != database.default) {
                     delete(database.connections[name]);
                 }
             });
 
-            this.resource.post({action: 'check'}, {config: this.config, locale: this.locale}, function (data) {
+            this.resource.post({action: 'check'}, {config: this.config, locale: this.locale}).then(function (res) {
 
+                var data = res.data;
                 if (!Vue.util.isPlainObject(data)) {
                     data = {message: 'Whoops, something went wrong'};
                 }
@@ -80,20 +80,23 @@ var installer = {
                 }
 
             });
+
         },
 
-        stepSite: function (e) {
-            e.preventDefault();
+        stepSite: function () {
 
             this.gotoStep('finish');
             this.stepInstall();
+
         },
 
         stepInstall: function () {
 
             this.$set('status', 'install');
 
-            this.resource.post({action: 'install'}, {config: this.config, option: this.option, user: this.user, locale: this.locale}, function (data) {
+            this.resource.post({action: 'install'}, {config: this.config, option: this.option, user: this.user, locale: this.locale}).then(function (res) {
+
+                var data = res.data;
 
                 setTimeout(function () {
 
@@ -123,6 +126,4 @@ var installer = {
 
 };
 
-jQuery(function () {
-    new Vue(installer).$mount('#installer');
-});
+Vue.ready(Installer);

@@ -1,7 +1,11 @@
 module.exports = {
 
+    el: '#widget-edit',
+
+    mixins: [window.Widgets],
+
     data: function () {
-        return _.merge({}, window.$data);
+        return _.merge({form: {}, sections: [], active: 0}, window.$data);
     },
 
     created: function () {
@@ -35,33 +39,36 @@ module.exports = {
 
     ready: function () {
 
-        UIkit.tab(this.$$.tab, {connect: this.$$.content});
-        // this.$set('widget.data', _.defaults({}, this.widget.data, this.type.defaults));
+        var tab = UIkit.tab(this.$els.tab, {connect: this.$els.content});
+
+        var vm = this;
+
+        tab.on('change.uk.tab', function (tab, current) {
+            vm.active = current.index();
+        });
+
+        this.$watch('active', function (active) {
+            tab.switcher.show(active);
+        });
+
+        this.$state('active');
 
         // set position from get param
         if (!this.widget.id) {
             var match = new RegExp('[?&]position=([^&]*)').exec(location.search);
             this.widget.position = (match && decodeURIComponent(match[1].replace(/\+/g, ' '))) || '';
         }
-    },
-
-    computed: {
-
-        positionOptions: function () {
-            return _.map(this.config.positions, function (position) {
-                return {text: this.$trans(position.label), value: position.name};
-            }, this);
-        }
 
     },
 
     methods: {
 
-        save: function (e) {
-            e.preventDefault();
-
+        save: function () {
             this.$broadcast('save', {widget: this.widget});
-            this.$resource('api/site/widget/:id').save({id: this.widget.id}, {widget: this.widget}, function (data) {
+            this.$resource('api/site/widget{/id}').save({id: this.widget.id}, {widget: this.widget}).then(function (res) {
+
+                var data = res.data;
+
                 this.$dispatch('saved');
 
                 if (!this.widget.id) {
@@ -71,25 +78,17 @@ module.exports = {
                 this.$set('widget', data.widget);
 
                 this.$notify('Widget saved.');
-            }, function (data) {
-                this.$notify(data, 'danger');
+            }, function (res) {
+                this.$notify(res.data, 'danger');
             });
         },
 
-        cancel: function (e) {
-            e.preventDefault();
-
+        cancel: function () {
             this.$dispatch('cancel');
         }
 
-    },
-
-    mixins: [window.Widgets]
+    }
 
 };
 
-jQuery(function () {
-
-    (new Vue(module.exports)).$mount('#widget-edit');
-
-});
+Vue.ready(module.exports);

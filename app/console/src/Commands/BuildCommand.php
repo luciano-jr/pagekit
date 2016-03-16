@@ -4,6 +4,8 @@ namespace Pagekit\Console\Commands;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Console\Command;
+use Pagekit\Installer\Helper\Composer;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
@@ -24,7 +26,7 @@ class BuildCommand extends Command
      * @var string[]
      */
     protected $excludes = [
-        '^(packages|tmp|config\.php|pagekit.+\.zip|pagekit.db)',
+        '^(tmp|config\.php|pagekit.+\.zip|pagekit.db)',
         '^app\/assets\/[^\/]+\/(dist\/vue-.+\.js|dist\/jquery\.js|lodash\.js)',
         '^app\/assets\/(jquery|vue)\/(src|perf)',
         '^app\/vendor\/lusitanian\/oauth\/examples',
@@ -42,11 +44,25 @@ class BuildCommand extends Command
     {
         $path = $this->container->path();
         $vers = $this->container->version();
-        $filter = '/'.implode('|', $this->excludes).'/i';
+        $filter = '/' . implode('|', $this->excludes) . '/i';
+        $packages = [
+            'pagekit/blog' => '*',
+            'pagekit/theme-one' => '*'
+        ];
+
+        $config = [];
+        foreach (['path.temp', 'path.cache', 'path.vendor', 'path.artifact', 'path.packages', 'system.api'] as $key) {
+            $config[$key] = $this->container->get($key);
+        }
+
+        $composer = new Composer($config, $output);
+        $composer->install($packages);
 
         $this->line(sprintf('Starting: webpack'));
 
         exec('webpack -p');
+
+        $this->line(sprintf('Building Package.'));
 
         $finder = Finder::create()->files()->in($path)->ignoreVCS(true)->filter(function ($file) use ($filter) {
             return !preg_match($filter, $file->getRelativePathname());
@@ -77,6 +93,6 @@ class BuildCommand extends Command
         $name = basename($zipFile);
         $size = filesize($zipFile) / 1024 / 1024;
 
-        $this->line(sprintf('Building: %s (%.2f MB)', $name, $size));
+        $this->line(sprintf('Build: %s (%.2f MB)', $name, $size));
     }
 }

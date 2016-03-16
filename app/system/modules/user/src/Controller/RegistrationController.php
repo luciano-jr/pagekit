@@ -22,12 +22,10 @@ class RegistrationController
     public function indexAction()
     {
         if (App::user()->isAuthenticated()) {
-            App::message()->info(__('You are already logged in.'));
             return App::redirect();
         }
 
         if ($this->module->config('registration') == 'admin') {
-            App::message()->info(__('Public user registration is disabled.'));
             return App::redirect();
         }
 
@@ -44,6 +42,8 @@ class RegistrationController
      */
     public function registerAction($data)
     {
+        $message = '';
+
         try {
 
             if (App::user()->isAuthenticated() || $this->module->config('registration') == 'admin') {
@@ -110,9 +110,10 @@ class RegistrationController
             App::abort(400, $e->getMessage());
         }
 
-        App::message()->success($message);
-
-        return ['redirect' => App::url('@user/login', [], true)];
+        return [
+            'message' => $message,
+            'redirect' => App::url('@user/login', [], true)
+        ];
     }
 
     /**
@@ -120,9 +121,15 @@ class RegistrationController
      */
     public function activateAction($username, $activation)
     {
+
+        $message = '';
+
         if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'status' => User::STATUS_BLOCKED, 'login IS NULL'])->first()) {
-            App::message()->error(__('Invalid key.'));
-            return App::redirect();
+
+            return AuthController::messageView([
+                'message' => __('Invalid key.'),
+                'success' => false
+            ]);
         }
 
         if ($admin = $this->module->config('registration') == 'approval' and !$user->get('verified')) {
@@ -130,7 +137,7 @@ class RegistrationController
             $user->activation = App::get('auth.random')->generateString(32);
             $this->sendApproveMail($user);
 
-            App::message()->success(__('Your email has been verified. Once an administrator approves your account, you will be notified by email.'));
+            $message = __('Your email has been verified. Once an administrator approves your account, you will be notified by email.');
 
         } else {
 
@@ -140,13 +147,15 @@ class RegistrationController
             $this->sendWelcomeEmail($user);
 
             if ($admin) {
-                App::message()->success(__('The user\'s account has been activated and the user has been notified about it.'));
+                $message = __('The user\'s account has been activated and the user has been notified about it.');
             } else {
-                App::message()->success(__('Your account has been activated.'));
+                $message = __('Your account has been activated.');
             }
         }
 
         $user->save();
+
+        App::message()->success($message);
 
         return App::redirect('@user/login');
     }
@@ -185,7 +194,7 @@ class RegistrationController
         try {
 
             $mail = App::mailer()->create();
-            $mail->setTo(App::module('mail')->config('from_address'))
+            $mail->setTo(App::module('system/mail')->config('from_address'))
                 ->setSubject(__('Approve an account at %site%.', ['%site%' => App::module('system/site')->config('title')]))
                 ->setBody(App::view('system/user:mails/approve.php', compact('user', 'mail')), 'text/html')
                 ->send();
@@ -193,4 +202,6 @@ class RegistrationController
         } catch (\Exception $e) {
         }
     }
+
+
 }

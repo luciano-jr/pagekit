@@ -6,8 +6,10 @@ use Composer\Installer;
 use Composer\IO\ConsoleIO;
 use Composer\Json\JsonFile;
 use Composer\Package\Locker;
+use Composer\Package\Package;
 use Composer\Repository\CompositeRepository;
 use Composer\Repository\InstalledFilesystemRepository;
+use Composer\Semver\VersionParser;
 use Symfony\Component\Console\Output\OutputInterface;
 
 
@@ -36,6 +38,7 @@ class Composer
     /**
      * @param $config
      * @param null $output
+     * @param bool $packagist
      */
     public function __construct($config, $output = null)
     {
@@ -53,28 +56,47 @@ class Composer
 
     /**
      * @param array $install [name => version, name => version, ...]
+     * @param bool $packagist
+     * @param bool $writeConfig
+     * @param bool $preferSource
      * @return bool
      */
-    public function install(array $install)
+    public function install(array $install, $packagist = false, $writeConfig = true, $preferSource = false)
     {
         $this->addPackages($install);
 
-        $this->composerUpdate(array_keys($install));
-        $this->writeConfig();
+        $refresh = [];
+        $versionParser = new VersionParser();
+        foreach ($install as $name => $version) {
+            try {
+                $normalized = $versionParser->normalize($version);
+                $refresh[] = new Package($name, $normalized, $version);
+            } catch (\UnexpectedValueException $e) {}
+        }
+
+        $this->composerUpdate(array_keys($install), $refresh, $packagist, $preferSource);
+
+        if ($writeConfig) {
+            $this->writeConfig();
+        }
     }
 
 
     /**
      * @param array|string $uninstall [name, name, ...]
+     * @param bool $writeConfig
      */
-    public function uninstall($uninstall)
+    public function uninstall($uninstall, $writeConfig = true)
     {
-        $uninstall = (array)$uninstall;
+        $uninstall = (array) $uninstall;
 
         $this->removePackages($uninstall);
 
         $this->composerUpdate($uninstall);
-        $this->writeConfig();
+
+        if ($writeConfig) {
+            $this->writeConfig();
+        }
     }
 
     /**
@@ -99,24 +121,39 @@ class Composer
      * Runs Composer Update command.
      *
      * @param  array|bool $updates
+     * @param array $refresh
+     * @param bool $packagist
+     * @param bool $preferSource
      * @return bool
+     * @throws \Exception
      */
-    protected function composerUpdate($updates = false)
+    protected function composerUpdate($updates = false, $refresh = [], $packagist = false, $preferSource = false)
     {
         $installed = new JsonFile($this->paths['path.vendor'] . '/composer/installed.json');
         $internal = new CompositeRepository([]);
         $internal->addRepository(new InstalledFilesystemRepository($installed));
 
-        $composer = $this->getComposer();
+        $composer = $this->getComposer($packagist);
+        $composer->getDownloadManager()->setOutputProgress(false);
+
+        $local = $composer->getRepositoryManager()->getLocalRepository();
+        foreach ($refresh as $package) {
+            $local->removePackage($package);
+        }
 
         $installer = Installer::create($this->getIO(), $composer)
             ->setAdditionalInstalledRepository($internal)
-            ->setPreferDist(true)
             ->setOptimizeAutoloader(true)
             ->setUpdate(true);
 
+        if ($preferSource) {
+            $installer->setPreferSource(true);
+        } else {
+            $installer->setPreferDist(true);
+        }
+
         if ($updates) {
-            $installer->setUpdateWhitelist($updates);
+            $installer->setUpdateWhitelist($updates)->setWhitelistDependencies();
         }
 
         $installer->run();
@@ -125,13 +162,18 @@ class Composer
     /**
      * Returns composer instance.
      *
+     * @param bool $packagist
      * @return null
      */
-    protected function getComposer()
+    protected function getComposer($packagist = false)
     {
         $config = $this->blueprint;
-        $config['config'] = ['vendor-dir' => $this->paths['path.packages']];
+        $config['config'] = ['vendor-dir' => $this->paths['path.packages'], 'cache-files-ttl' => 0];
         $config['require'] = $this->packages;
+
+        if (!$packagist) {
+            $config['repositories'][] = ['packagist' => false];
+        }
 
         // set memory limit, if < 512M
         $memory = trim(ini_get('memory_limit'));
@@ -210,7 +252,7 @@ class Composer
     protected function memoryInBytes($value)
     {
         $unit = strtolower(substr($value, -1, 1));
-        $value = (int)$value;
+        $value = (int) $value;
 
         switch ($unit) {
             case 'g':

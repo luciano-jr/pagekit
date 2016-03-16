@@ -1,12 +1,14 @@
-window.Settings = module.exports = {
+window.Settings = {
+
+    el: '#settings',
 
     data: function () {
         return window.$settings;
     },
 
-    ready: function() {
+    ready: function () {
 
-        UIkit.tab(this.$$.tab, {connect: this.$$.content});
+        UIkit.tab(this.$els.tab, {connect: this.$els.content});
 
     },
 
@@ -34,16 +36,14 @@ window.Settings = module.exports = {
 
     methods: {
 
-        save: function(e) {
-
-            e.preventDefault();
-
+        save: function () {
             this.$broadcast('save', this.$data);
-            this.$resource('admin/system/settings/save').save({ config: this.config, options: this.options }, function() {
-                this.$notify('Settings saved.');
-            }, function (data) {
-                this.$notify(data, 'danger');
-            });
+            this.$resource('admin/system/settings/save').save({config: this.config, options: this.options}).then(function () {
+                        this.$notify('Settings saved.');
+                    }, function (res) {
+                        this.$notify(res.data, 'danger');
+                    }
+                );
         }
 
     },
@@ -57,8 +57,4 @@ window.Settings = module.exports = {
 
 };
 
-jQuery(function () {
-
-    (new Vue(module.exports)).$mount('#settings');
-
-});
+Vue.ready(window.Settings);

@@ -1,8 +1,8 @@
 module.exports = {
 
-    ready: function () {
+    created: function () {
 
-        var self = this, $el = $(this.$el), $parent = $el.parent();
+        var self = this, $el = $(this.$parent.$els.editor), $parent = $el.parent();
 
         $parent.addClass('pk-editor');
 
@@ -15,9 +15,9 @@ module.exports = {
                 'app/assets/codemirror/codemirror.js'
             ]
 
-        }, function () {
+        }).then(function () {
 
-            this.editor = CodeMirror.fromTextArea(this.$el, _.extend({
+            this.editor = CodeMirror.fromTextArea(this.$parent.$els.editor, _.extend({
                 mode: 'htmlmixed',
                 dragDrop: false,
                 autoCloseTags: true,
@@ -27,7 +27,7 @@ module.exports = {
                 indentUnit: 4,
                 indentWithTabs: false,
                 tabSize: 4
-            }, this.options));
+            }, this.$parent.options));
 
             $parent.attr('data-uk-check-display', 'true').on('display.uk.check', function (e) {
                 self.editor.refresh();
@@ -38,7 +38,7 @@ module.exports = {
                 $el.trigger('input');
             });
 
-            this.$watch('value', function (value) {
+            this.$watch('$parent.value', function (value) {
                 if (value != this.editor.getValue()) {
                     this.editor.setValue(value);
                 }

@@ -32,10 +32,6 @@ class IntlModule extends Module
             return $translator;
         };
 
-        $app->extend('view', function ($view) {
-            return $view->addGlobal('intl', $this);
-        });
-
         require __DIR__.'/../functions.php';
     }
 
@@ -244,7 +240,12 @@ class IntlModule extends Module
     protected function getData($name, $locale = null)
     {
         $locale = $locale ?: $this->getLocale();
-        return $this->parse("app/system/languages/{$locale}/{$name}.json");
+
+        if (!($data = $this->parse("app/system/languages/{$locale}/{$name}.json"))) {
+            $data = $this->parse("app/system/languages/en_GB/{$name}.json");
+        }
+
+        return $data;
     }
 
     /**

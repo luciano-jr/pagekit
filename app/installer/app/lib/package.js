@@ -1,5 +1,5 @@
-var Install = require('./install.vue');
-var Uninstall = require('./uninstall.vue');
+var Install = Vue.extend(require('./install.vue'));
+var Uninstall = Vue.extend(require('./uninstall.vue'));
 
 module.exports = {
 
@@ -15,48 +15,40 @@ module.exports = {
 
             return this.$http.post(this.api + '/api/package/update', {
                 packages: JSON.stringify(pkgs)
-            }, success, options);
+            }, options).then(success, this.error);
         },
-
-        queryPackage: function (pkg, success) {
-            return this.$http.get(this.api + '/api/package/:name', {
-                name: _.isObject(pkg) ? pkg.name : pkg
-            }, success).error(function () {
-            });
-        },
-
 
         enable: function (pkg) {
-            return this.$http.post('admin/system/package/enable', {name: pkg.name})
-                .success(function () {
+            return this.$http.post('admin/system/package/enable', {name: pkg.name}).then(function () {
                     this.$notify(this.$trans('"%title%" enabled.', {title: pkg.title}));
-                    pkg.$set('enabled', true);
+                    Vue.set(pkg, 'enabled', true);
                     document.location.reload();
-                }).error(this.error);
+                }, this.error);
         },
 
         disable: function (pkg) {
             return this.$http.post('admin/system/package/disable', {name: pkg.name})
-                .success(function () {
-                    pkg.$set('enabled', false);
+                .then(function () {
+                    this.$notify(this.$trans('"%title%" disabled.', {title: pkg.title}));
+                    Vue.set(pkg, 'enabled', false);
                     document.location.reload();
-                }).error(this.error);
+                }, this.error);
         },
 
-        install: function (pkg, packages) {
-            var install = this.$addChild(Install);
+        install: function (pkg, packages, onClose, packagist) {
+            var install = new Install({parent: this});
 
-            return install.install(pkg, packages);
+            return install.install(pkg, packages, onClose, packagist);
         },
 
         uninstall: function (pkg, packages) {
-            var uninstall = this.$addChild(Uninstall);
+            var uninstall = new Uninstall({parent: this});
 
             return uninstall.uninstall(pkg, packages);
         },
 
         error: function (message) {
-            this.$notify(message, 'danger');
+            this.$notify(message.data, 'danger');
         }
 
     }

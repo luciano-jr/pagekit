@@ -20,15 +20,14 @@ class SystemModule extends Module
             return Finder::create();
         });
 
-        $app['db.em']; // -TODO- fix me
+        $app->extend('assets', function ($factory) use ($app) {
 
-        $app->extend('view', function ($view) use ($app) {
+            $secret = $this->config['secret'];
+            $version = substr(sha1($app['version'] . $secret), 0, 4);
+            $factory->setVersion($version);
 
-            $theme = $app->isAdmin() ? $app->module('system/theme') : $app['theme'];
+            return $factory;
 
-            $view->map('layout', $theme->get('layout', 'views:template.php'));
-
-            return $view->addGlobal('theme', $app['theme']);
         });
 
         $theme = $this->config('site.theme');
@@ -46,8 +45,8 @@ class SystemModule extends Module
 
                 $module['type'] = 'theme';
 
-                $app['locator']->add("theme:", $module['path']);
-                $app['locator']->add("views:", "{$module['path']}/views");
+                $app['locator']->add('theme:', $module['path']);
+                $app['locator']->add('views:', "{$module['path']}/views");
             }
 
             return $module;
@@ -57,7 +56,8 @@ class SystemModule extends Module
             try {
                 $app['module']->load($module);
             } catch (\RuntimeException $e) {
-                $app['log']->warn("Unable to load extension: $module");
+                $module = ucfirst($module);
+                $app['log']->error("[$module exception]: {$e->getMessage()}");
             }
         }
 
@@ -70,7 +70,6 @@ class SystemModule extends Module
                 'layout' => 'views:system/blank.php'
             ]);
         }
-
 
     }
 

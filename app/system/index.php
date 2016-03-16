@@ -83,6 +83,8 @@ return [
                 $app->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }
 
+            $app['db.em']; // -TODO- fix me
+
         },
 
         'request' => [
@@ -113,7 +115,7 @@ return [
         'auth.login' => [function ($event) use ($app) {
             if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->version(), '<')) {
 
-                $scripts = new PackageScripts($this->path.'/scripts.php', $this->config('version'));
+                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'));
 
                 if ($scripts->hasUpdates()) {
                     $event->setResponse($app['response']->redirect('@system/migration', ['redirect' => $app['url']->getRoute('@system')]));
@@ -122,6 +124,12 @@ return [
                 }
             }
         }, 8],
+
+        'view.init' => function ($event, $view) use ($app) {
+            $theme = $app->isAdmin() ? $app->module('system/theme') : $app['theme'];
+            $view->map('layout', $theme->get('layout', 'views:template.php'));
+            $view->addGlobal('theme', $app['theme']);
+        },
 
         'view.messages' => function ($event) use ($app) {
 
@@ -141,6 +149,7 @@ return [
         },
 
         'view.meta' => function ($event, $meta) use ($app) {
+
             if ($meta->get('title')) {
                 $title[] = $meta->get('title');
             }
@@ -150,7 +159,11 @@ return [
             }
 
             $meta->add('title', implode(' | ', $title));
-        }
+        },
+
+        'view.head' => [function ($event, $view) {
+            $view->script('auth', 'app/system/modules/user/app/bundle/interceptor.js', ['vue']);
+        }, 50]
 
     ]
 

@@ -2,26 +2,26 @@
 
     <div class="uk-panel-badge">
         <ul class="uk-subnav pk-subnav-icon">
-            <li v-show="$parent.editing[widget.id]">
-                <a class="pk-icon-delete pk-icon-hover" title="{{ 'Delete' | trans }}" data-uk-tooltip="{delay: 500}" v-on="click: $parent.remove()" v-confirm="'Delete widget?'"></a>
+            <li v-show="!editing">
+                <a class="pk-icon-contrast pk-icon-edit pk-icon-hover uk-hidden" :title="'Edit' | trans" data-uk-tooltip="{delay: 500}" @click.prevent="$parent.edit"></a>
             </li>
-            <li v-show="!$parent.editing[widget.id]">
-                <a class="pk-icon-contrast pk-icon-edit pk-icon-hover uk-hidden" title="{{ 'Edit' | trans }}" data-uk-tooltip="{delay: 500}" v-on="click: $parent.edit()"></a>
+            <li v-show="editing">
+                <a class="pk-icon-delete pk-icon-hover" :title="'Delete' | trans" data-uk-tooltip="{delay: 500}" @click.prevent="$parent.remove" v-confirm="'Delete widget?'"></a>
             </li>
-            <li v-show="$parent.editing[widget.id]">
-                <a class="pk-icon-check pk-icon-hover" title="{{ 'Close' | trans }}" data-uk-tooltip="{delay: 500}" v-on="click: $parent.edit()"></a>
+            <li v-show="editing">
+                <a class="pk-icon-check pk-icon-hover" :title="'Close' | trans" data-uk-tooltip="{delay: 500}" @click.prevent="$parent.save"></a>
             </li>
         </ul>
     </div>
 
-    <form class="pk-panel-teaser uk-form uk-form-stacked" v-show="editing" v-on="submit: $event.preventDefault()">
+    <form class="pk-panel-teaser uk-form uk-form-stacked" v-show="editing" @submit.prevent>
 
         <div class="uk-form-row">
             <label for="form-city" class="uk-form-label">{{ 'Location' | trans }}</label>
 
             <div class="uk-form-controls">
-                <div v-el="autocomplete" class="uk-autocomplete uk-width-1-1">
-                    <input id="form-city" class="uk-width-1-1" type="text" placeholder="{{ location }}" v-el="location" v-on="blur: clear" autocomplete="off">
+                <div v-el:autocomplete class="uk-autocomplete uk-width-1-1">
+                    <input id="form-city" class="uk-width-1-1" type="text" :placeholder="location" v-el:location @blur="clear" autocomplete="off">
                 </div>
             </div>
         </div>
@@ -48,11 +48,11 @@
         <h2 class="uk-text-center uk-h4 uk-margin-remove" v-if="time">{{ time | date 'longDate' }}</h2>
         <div class="uk-margin-large-top uk-flex uk-flex-middle uk-flex-space-between uk-flex-wrap" data-uk-margin>
             <h3 class="uk-margin-remove" v-if="widget.city">{{ widget.city }}</h3>
-            <h3 class="uk-flex uk-flex-middle uk-margin-remove" v-if="status=='done'">{{ temperature }} <img class="uk-margin-small-left" v-attr="src: icon" width="25" height="25" alt="Weather"></h3>
+            <h3 class="uk-flex uk-flex-middle uk-margin-remove" v-if="status=='done'">{{ temperature }} <img class="uk-margin-small-left" :src="icon" width="25" height="25" alt="Weather"></h3>
         </div>
     </div>
 
-    <div class="uk-text-center" v-if="status == 'loading'">
+    <div class="uk-text-center" v-else>
         <v-loader></v-loader>
     </div>
 
@@ -70,7 +70,6 @@
             label: 'Location',
             disableToolbar: true,
             description: function () {
-
             },
             defaults: {
                 units: 'metric'
@@ -98,23 +97,26 @@
             var vm = this, list;
 
             UIkit
-                .autocomplete(this.$$.autocomplete, {
+                .autocomplete(this.$els.autocomplete, {
 
                     source: function (release) {
 
-                        vm.$http.get(api + '/find', {q: this.input.val(), type: 'like', APPID: apiKey}, function (data) {
+                        vm.$http.get(api + '/find', {q: this.input.val(), type: 'like', APPID: apiKey}).then(
+                            function (res) {
 
-                            list = data.list || [];
-                            release(list);
+                                var data = res.data;
+                                list = data.list || [];
+                                release(list);
 
-                        }).error(function () {
-                            release([]);
-                        });
+                            },
+                            function () {
+                                release([]);
+                            });
 
                     },
 
                     template: '<ul class="uk-nav uk-nav-autocomplete uk-autocomplete-results">\
-                                  {{~items}}<li data-value="{{$item.name}}" data-id="{{$item.id}}"><a>{{$item.name}} <span>, {{$item.sys.country}}</span></a></li>{{/items}}\
+                                  {{~items}}<li :data-value="$item.name" :data-id="$item.id"><a>{{$item.name}} <span>, {{$item.sys.country}}</span></a></li>{{/items}}\
                                   {{^items.length}}<li class="uk-skip"><a class="uk-text-muted">{{msgNoResults}}</a></li>{{/end}} \
                                </ul>',
 
@@ -130,7 +132,7 @@
                     var location = _.find(list, 'id', data.id);
 
                     Vue.nextTick(function () {
-                        vm.$$.location.blur();
+                        vm.$els.location.blur();
                     });
 
                     if (!location) {
@@ -196,49 +198,34 @@
                     return;
                 }
 
-                var weatherKey = 'weather-' + this.widget.uid;
-
-                if (this.$cache.get(weatherKey)) {
-
-                    this.init(this.$cache.get(weatherKey));
-
-                } else {
-
-                    this.$http.get(api + '/weather', {id: this.widget.uid, units: 'metric', APPID: apiKey}, function (data) {
-
+                this.$http.get(api + '/weather', {id: this.widget.uid, units: 'metric', APPID: apiKey}, {cache: 60}).then(
+                    function (res) {
+                        var data = res.data;
                         if (data.cod == 200) {
-                            this.$cache.set(weatherKey, data, 60);
                             this.init(data)
                         } else {
                             this.$set('status', 'error');
                         }
 
-                    }).error(function () {
+                    },
+                    function () {
                         this.$set('status', 'error');
-                    });
+                    }
+                );
 
-                }
+                this.$http.get('https://maps.googleapis.com/maps/api/timezone/json',
+                    {location: this.widget.coords.lat + ',' + this.widget.coords.lon, timestamp: Math.floor(Date.now() / 1000)},
+                    {cache: {key: 'timezone-' + this.widget.coords.lat + this.widget.coords.lon, lifetime: 1440}}).then(function (res) {
 
-                var timezoneKey = 'timezone-' + this.widget.coords.lat + this.widget.coords.lon;
+                    var data = res.data;
+                    data.offset = data.rawOffset + data.dstOffset;
 
-                if (this.$cache.get(timezoneKey)) {
+                    this.$set('timezone', data);
 
-                    this.$set('timezone', this.$cache.get(timezoneKey));
+                }, function () {
+                    this.$set('status', 'error');
+                });
 
-                } else {
-
-                    this.$http.get('https://maps.googleapis.com/maps/api/timezone/json', {location: this.widget.coords.lat + ',' + this.widget.coords.lon, timestamp: Math.floor(Date.now() / 1000)}, function (data) {
-
-                        data.offset = data.rawOffset + data.dstOffset;
-
-                        this.$cache.set(timezoneKey, data, 1440);
-                        this.$set('timezone', data);
-
-                    }).error(function () {
-                        this.$set('status', 'error');
-                    });
-
-                }
 
             },
 
@@ -275,7 +262,7 @@
 
                 };
 
-                return this.$url('app/system/modules/dashboard/assets/images/weather-:icon', {icon: icons[icon]});
+                return this.$url('app/system/modules/dashboard/assets/images/weather-{icon}', {icon: icons[icon]});
             },
 
             updateClock: function () {
@@ -290,7 +277,7 @@
             },
 
             clear: function () {
-                this.$$.location.value = '';
+                this.$els.location.value = '';
             }
 
         },

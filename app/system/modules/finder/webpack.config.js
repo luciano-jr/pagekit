@@ -2,7 +2,8 @@ module.exports = [
 
     {
         entry: {
-            "panel-finder": "./app/components/panel-finder.vue"
+            "panel-finder": "./app/components/panel-finder.vue",
+            "link-storage": "./app/components/link-storage.vue"
         },
         output: {
             filename: "./app/bundle/[name].js",
@@ -10,7 +11,7 @@ module.exports = [
         },
         module: {
             loaders: [
-                { test: /\.html$/, loader: "html" },
+                { test: /\.html$/, loader: "vue-html" },
                 { test: /\.vue$/, loader: "vue" }
             ]
         }

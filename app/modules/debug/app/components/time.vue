@@ -1,24 +1,21 @@
 <template>
 
-    <a title="Time"><div class="pf-icon pf-icon-time"></div> {{ duration_str }}</a>
+    <a title="Time"><span class="pf-icon pf-icon-time"></span>{{ data.duration_str }}</a>
 
 </template>
 
 <script>
 
-  module.exports = {
+    module.exports = {
 
-    section: {
-        priority: 30
-    },
+        section: {
+            priority: 30
+        },
 
-    props: ['data'],
+        replace: false,
 
-    created: function () {
-        this.$data = this.data;
-        this.$parent.add(this);
-    }
+        props: ['data']
 
-  };
+    };
 
 </script>

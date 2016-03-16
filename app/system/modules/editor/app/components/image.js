@@ -2,15 +2,13 @@
  * Editor Image plugin.
  */
 
-var Picker = Vue.extend(require('./image-picker.vue'));
-
 module.exports = {
 
     plugin: true,
 
     created: function () {
 
-        var vm = this, editor = this.editor;
+        var vm = this, editor = this.$parent.editor;
 
         if (!editor || !editor.htmleditor) {
             return;
@@ -35,18 +33,19 @@ module.exports = {
                     vm.$children[0].$destroy();
                 }
 
-                Vue.nextTick(function() {
-                    vm.$compile(editor.preview[0]);
+                Vue.nextTick(function () {
+                    editor.preview.find('image-preview').each(function () {
+                        vm.$compile(this);
+                    });
                 });
             });
-
     },
 
     methods: {
 
         openModal: function (image) {
 
-            var editor = this.editor, cursor = editor.editor.getCursor();
+            var editor = this.$parent.editor, cursor = editor.editor.getCursor();
 
             if (!image) {
                 image = {
@@ -56,36 +55,55 @@ module.exports = {
                 };
             }
 
-            this.$addChild({
-                    data: {
-                        image: image
-                    }
-                }, Picker)
-                .$mount()
+            new this.$parent.$options.utils['image-picker']({
+                parent: this,
+                data: {
+                    image: image
+                }
+            }).$mount()
                 .$appendTo('body')
                 .$on('select', function (image) {
-                    image.replace(this.$interpolate(
-                        (image.tag || editor.getCursorMode()) == 'html' ?
-                            '<img src="{{ image.src }}" alt="{{ image.alt }}">'
-                            : '![{{ image.alt }}]({{ image.src }})'
-                        )
-                    );
+
+                    var content;
+
+                    if ((image.tag || editor.getCursorMode()) == 'html' ) {
+                        content = '<img';
+
+                        Object.keys(image.data).forEach(function (attr) {
+                            var value = image.data[attr];
+                            content += ' ' + attr + (_.isBoolean(value) ? '' : '="' + value + '"');
+                        });
+
+                        content += '>';
+                    } else {
+                        content = '![' + image.data.alt + '](' + image.data.src + ')';
+                    }
+
+                    image.replace(content);
                 });
         },
 
         replaceInPreview: function (data, index) {
 
+            data.data = {};
             if (data.matches[0][0] == '<') {
-                data.src = data.matches[0].match(/src="(.*?)"/)[1];
-                data.alt = data.matches[0].match(/alt="(.*?)"/)[1];
+
+                var matches,
+                    regex = /([^=\s"']+)\s*=(?:"([^"]*)"|'([^']*)')|([^=\s"']+)/gi;
+
+                data.data = {};
+                while ((matches = regex.exec(data.matches[1])) !== null) {
+                    data.data[matches[1] || matches[4]] = matches[2] === undefined && matches[3] === undefined || matches[2] || matches[3];
+                }
+
                 data.tag = 'html';
             } else {
-                data.src = data.matches[3];
-                data.alt = data.matches[2];
+                data.data.src = data.matches[3];
+                data.data.alt = data.matches[2];
                 data.tag = 'gfm';
             }
 
-            return '<image-preview index="'+index+'"></image-preview>';
+            return '<image-preview index="' + index + '"></image-preview>';
         }
 
     },

@@ -1,7 +1,9 @@
-window.User = module.exports = {
+window.User = {
 
-    data: function() {
-        return _.merge({password: ''}, window.$data);
+    el: '#user-edit',
+
+    data: function () {
+        return _.extend({sections: [], form: {}}, window.$data);
     },
 
     created: function () {
@@ -23,53 +25,40 @@ window.User = module.exports = {
     },
 
     ready: function () {
-        this.tab = UIkit.tab(this.$$.tab, {connect: this.$$.content});
-    },
-
-    computed: {
-
-        isNew: function () {
-            return !this.user.access && this.user.status;
-        }
-
+        this.tab = UIkit.tab(this.$els.tab, {connect: this.$els.content});
     },
 
     methods: {
 
-        save: function (e) {
-            e.preventDefault();
+        save: function () {
 
-            var data = {user: this.user, password: this.password};
+            var data = {user: this.user};
 
             this.$broadcast('save', data);
 
-            this.$resource('api/user/:id').save({id: this.user.id}, data, function (data) {
+            this.$resource('api/user{/id}').save({id: this.user.id}, data).then(function (res) {
+                        if (!this.user.id) {
+                            window.history.replaceState({}, '', this.$url.route('admin/user/edit', {id: res.data.user.id}))
+                        }
 
-                if (!this.user.id) {
-                    window.history.replaceState({}, '', this.$url.route('admin/user/edit', {id: data.user.id}))
-                }
+                        this.$set('user', res.data.user);
 
-                this.$set('user', data.user);
+                        this.$notify('User saved.');
+                    }, function (res) {
+                        this.$notify(res.data, 'danger');
+                    }
+                );
 
-                this.$notify('User saved.');
-
-            }).error(function (data) {
-                this.$notify(data, 'danger');
-            });
         }
 
     },
 
     components: {
 
-        'settings': require('../../components/user-settings.vue')
+        settings: require('../../components/user-settings.vue')
 
     }
 
 };
 
-$(function () {
-
-    new Vue(module.exports).$mount('#user-edit');
-
-});
+Vue.ready(window.User);

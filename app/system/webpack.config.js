@@ -15,15 +15,14 @@ module.exports = [
                 "vue-form$": assets + "/vue-form/src/index.js",
                 "vue-intl$": assets + "/vue-intl/src/index.js",
                 "vue-resource$": assets + "/vue-resource/src/index.js",
-                "promise$": assets + "/vue-resource/src/lib/promise.js",
-                "lscache$": assets + "/lscache/lscache.js"
+                "JSONStorage$": assets + "/JSONStorage/storage.js"
             }
         },
         module: {
             loaders: [
                 { test: /\.vue$/, loader: "vue" },
                 { test: /\.json$/, loader: "json" },
-                { test: /\.html$/, loader: "html" }
+                { test: /\.html$/, loader: "vue-html" }
             ]
         }
     }

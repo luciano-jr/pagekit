@@ -352,7 +352,7 @@ class RequirementCollection implements IteratorAggregate
  */
 class PagekitRequirements extends RequirementCollection
 {
-    const REQUIRED_PHP_VERSION = '5.4.0';
+    const REQUIRED_PHP_VERSION = '5.5.9';
 
     /**
      * Constructor that initializes the requirements.
@@ -364,6 +364,7 @@ class PagekitRequirements extends RequirementCollection
         $installedPhpVersion = phpversion();
 
         $this->addPhpIniRequirement('detect_unicode', false);
+        $this->addPhpIniRequirement('allow_url_fopen', true);
 
         $this->addRequirement(
             version_compare($installedPhpVersion, self::REQUIRED_PHP_VERSION, '>='),
@@ -378,6 +379,12 @@ class PagekitRequirements extends RequirementCollection
             function_exists('json_encode'),
             'json_encode() must be available',
             'Install and enable the <strong>JSON</strong> extension.'
+        );
+
+        $this->addRequirement(
+            extension_loaded('openssl'),
+            'OpenSSL must be available',
+            'Install and enable the <strong>OpenSSL</strong> extension.'
         );
 
         $this->addRequirement(

@@ -1,7 +1,9 @@
-window.Site = module.exports = {
+window.Site = {
+
+    el: '#site-edit',
 
     data: function () {
-        return _.merge({}, window.$data);
+        return _.merge({sections: [], form: {}, active: 0}, window.$data);
     },
 
     created: function () {
@@ -34,8 +36,22 @@ window.Site = module.exports = {
     },
 
     ready: function () {
-        this.Nodes = this.$resource('api/site/node/:id');
-        this.tab = UIkit.tab(this.$$.tab, {connect: this.$$.content});
+
+        var vm = this;
+
+        this.Nodes = this.$resource('api/site/node{/id}');
+        this.tab = UIkit.tab(this.$els.tab, {connect: this.$els.content});
+
+        this.tab.on('change.uk.tab', function (tab, current) {
+            vm.active = current.index();
+        });
+
+        this.$watch('active', function (active) {
+            this.tab.switcher.show(active);
+        });
+
+        this.$state('active');
+
     },
 
     computed: {
@@ -48,34 +64,32 @@ window.Site = module.exports = {
 
     methods: {
 
-        save: function (e) {
-            e.preventDefault();
-
+        save: function () {
             var data = {node: this.node};
 
             this.$broadcast('save', data);
 
-            this.Nodes.save({id: this.node.id}, data, function (data) {
+            this.Nodes.save({id: this.node.id}, data).then(function (res) {
+                    var data = res.data;
+                    if (!this.node.id) {
+                        window.history.replaceState({}, '', this.$url.route('admin/site/page/edit', {id: data.node.id}));
+                    }
 
-                if (!this.node.id) {
-                    window.history.replaceState({}, '', this.$url.route('admin/site/page/edit', {id: data.node.id}));
+                    this.$set('node', data.node);
+
+                    this.$notify(this.$trans('%type% saved.', {type: this.type.label}));
+
+                }, function (res) {
+                    this.$notify(res.data, 'danger');
                 }
-
-                this.$set('node', data.node);
-
-                this.$notify(this.$trans('%type% saved.', {type: this.type.label}));
-
-            }, function (data) {
-
-                this.$notify(data, 'danger');
-            });
+            );
         }
 
     },
 
     partials: {
 
-        'settings': require('../templates/settings.html')
+        settings: require('../templates/settings.html')
 
     },
 
@@ -88,8 +102,4 @@ window.Site = module.exports = {
 
 };
 
-jQuery(function () {
-
-    (new Vue(module.exports)).$mount('#site-edit');
-
-});
+Vue.ready(window.Site);
