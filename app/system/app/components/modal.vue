@@ -73,16 +73,9 @@
             open: function () {
                 this.opened = true;
                 this.modal.show();
-
-                this.observer = new MutationObserver(function () {
-                    this.modal.resize();
-                }.bind(this));
-
-                this.observer.observe(this.$el, {childList: true, subtree: true});
             },
 
             close: function () {
-                this.observer.disconnect();
                 this.modal.hide();
             }
 
