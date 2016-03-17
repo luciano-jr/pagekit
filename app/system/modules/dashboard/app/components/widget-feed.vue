@@ -62,8 +62,8 @@
         <h3 class="uk-panel-title" v-if="widget.title">{{ widget.title }}</h3>
 
         <ul class="uk-list uk-list-line uk-margin-remove">
-            <li v-repeat="entry: feed.entries | count">
-                <a v-attr="href: entry.link" target="_blank">{{ entry.title }}</a> <span class="uk-text-muted uk-text-nowrap">{{ entry.publishedDate | relativeDate }}</span>
+            <li v-for="entry in feed.entries | count">
+                <a :href="entry.link" target="_blank">{{ entry.title }}</a> <span class="uk-text-muted uk-text-nowrap">{{ entry.publishedDate | relativeDate }}</span>
 
                 <p class="uk-margin-small-top" v-if="widget.content == '1'">{{ entry.contentSnippet }}</p>
 
@@ -77,7 +77,7 @@
 
     </div>
 
-    <div class="uk-text-center" v-if="status == 'loading'">
+    <div class="uk-text-center" v-else>
         <v-loader></v-loader>
     </div>
 
@@ -105,6 +105,13 @@
         replace: false,
 
         props: ['widget', 'editing'],
+
+        data: function () {
+            return {
+                status: '',
+                feed: {}
+            }
+        },
 
         filters: {
 
@@ -154,21 +161,19 @@
                 this.$set('status', 'loading');
 
                 // TODO: The Google Feed API is deprecated.
-                this.$http.jsonp('//ajax.googleapis.com/ajax/services/feed/load', {v: '1.0', q: this.$get('widget.url'), num: this.$get('widget.count')}, function (data) {
+                this.$http.jsonp('//ajax.googleapis.com/ajax/services/feed/load', {v: '1.0', q: this.$get('widget.url'), num: this.$get('widget.count')}).then(function (res) {
+                            var data = res.data;
 
-                    if (data.responseStatus === 200) {
-                        this.$set('feed', data.responseData.feed);
-                        this.$set('status', 'done');
-                    } else {
-                        this.$set('status', 'error');
-                    }
-
-                }).error(function () {
-
-                    this.$set('status', 'error');
-
-                });
-
+                            if (data.responseStatus === 200) {
+                                this.$set('feed', data.responseData.feed);
+                                this.$set('status', 'done');
+                            } else {
+                                this.$set('status', 'error');
+                            }
+                        }, function () {
+                            this.$set('status', 'error');
+                        }
+                    );
             }
 
         }

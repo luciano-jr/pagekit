@@ -6,11 +6,10 @@
 
 </template>
 
-
 <script>
 
     module.exports = {
-
+        name: 'loader'
     };
 
 </script>

@@ -1,25 +1,22 @@
 module.exports = {
 
+    el: '#user-profile',
+
     data: window.$data,
 
     methods: {
 
-        save: function (e) {
-            e.preventDefault();
-
-            this.$http.post('user/profile/save', {user: this.user}, function () {
-                this.$notify('Profile Updated', 'success');
-            }).error(function (error) {
-                this.$notify(error, 'danger');
-            });
+        save: function () {
+            this.$http.post('user/profile/save', {user: this.user}).then(function () {
+                        this.$notify('Profile Updated', 'success');
+                    }, function (res) {
+                        this.$notify(res.data, 'danger');
+                    }
+                );
         }
 
     }
 
 };
 
-$(function () {
-
-    new Vue(module.exports).$mount('#user-profile');
-
-});
+Vue.ready(module.exports);

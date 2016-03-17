@@ -1,16 +1,21 @@
 var Version = require('../../../../../installer/app/lib/version');
 
-window.Dashboard = module.exports = {
+window.Dashboard = {
+
+    el: '#dashboard',
 
     data: function () {
-        return _.extend({editing: false}, window.$data);
+        return _.extend({
+            editing: {},
+            update: {}
+        }, window.$data);
     },
 
     created: function () {
 
         var self = this;
 
-        this.Widgets = this.$resource('admin/dashboard/:id');
+        this.Widgets = this.$resource('admin/dashboard{/id}');
 
         this.$set('widgets', this.widgets.filter(function (widget, idx) {
 
@@ -24,8 +29,6 @@ window.Dashboard = module.exports = {
 
             return false;
         }));
-
-        this.$set('editing', {});
 
         this.checkVersion();
     },
@@ -64,11 +67,11 @@ window.Dashboard = module.exports = {
                         data[widget.id] = widget;
                     });
 
-                    self.$http.post('admin/dashboard/savewidgets', {widgets: data}).then(function() {
+                    self.$http.post('admin/dashboard/savewidgets', {widgets: data}).then(function () {
 
                         // cleanup empty items - maybe fixed with future vue.js version
-                        sortables.children().each(function() {
-                            if(!this.children.length) $(this).remove();
+                        sortables.children().each(function () {
+                            if (!this.children.length) $(this).remove();
                         });
                     });
             }
@@ -112,9 +115,25 @@ window.Dashboard = module.exports = {
                 column = (this.children.length < sortables.eq(column)[0].children.length) ? idx : column;
             });
 
-            this.Widgets.save({widget: _.merge({type: type.id, column: column, idx: 100}, type.defaults)}, function (data) {
+            this.Widgets.save({widget: _.merge({type: type.id, column: column, idx: 100}, type.defaults)}).then(function (res) {
+                var data = res.data;
                 this.widgets.push(data);
-                this.editing.$set(data.id, true);
+                this.editing[data.id] = true;
+            });
+        },
+
+        save: function (widget) {
+
+            var data = {widget: widget};
+
+            this.$broadcast('save', data);
+            this.Widgets.save({id: widget.id}, data);
+        },
+
+        remove: function (widget) {
+
+            this.Widgets.delete({id: widget.id}).then(function () {
+                this.widgets.splice(_.findIndex(this.widgets, {id: widget.id}), 1);
             });
         },
 
@@ -140,21 +159,15 @@ window.Dashboard = module.exports = {
             return types;
         },
 
-        checkVersion: function() {
+        checkVersion: function () {
 
-            if (this.$cache.get('pagekit.update')) {
-                this.$set('update', this.$cache.get('pagekit.update'));
-            } else {
-                this.$http.get(this.api + '/api/update', function (data) {
+            this.$http.get(this.api + '/api/update', {}, {cache: 60}).then(function (res) {
+                var update = res.data[this.channel == 'nightly' ? 'nightly' : 'latest'];
 
-                    var update = data[this.channel == 'nightly' ? 'nightly' : 'latest'];
-
-                    if (update) {
-                        this.$cache.set('pagekit.update', update, 1440);
-                        this.$set('update', update);
-                    }
-                });
-            }
+                if (update) {
+                    this.$set('update', update);
+                }
+            });
 
         }
 
@@ -170,8 +183,4 @@ window.Dashboard = module.exports = {
 
 };
 
-jQuery(function () {
-
-    new Vue(module.exports).$mount('#dashboard');
-
-});
+Vue.ready(window.Dashboard);

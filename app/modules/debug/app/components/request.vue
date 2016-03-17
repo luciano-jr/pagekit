@@ -1,24 +1,21 @@
 <template>
 
-    <a title="Request"><div class="pf-icon pf-icon-request"></div> <span class="pf-badge">200</span> @test</a>
+    <a title="Request"><span class="pf-icon pf-icon-request"></span> <span class="pf-badge">200</span> @test</a>
 
 </template>
 
 <script>
 
-  module.exports = {
+    module.exports = {
 
-    section: {
-        priority: 10
-    },
+        section: {
+            priority: 10
+        },
 
-    props: ['data'],
+        replace: false,
 
-    created: function () {
-        this.$data = this.data;
-        this.$parent.add(this);
-    }
+        props: ['data']
 
-  };
+    };
 
 </script>

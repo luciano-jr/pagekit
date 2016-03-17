@@ -1,7 +1,8 @@
 <template>
 
     <div class="uk-modal-header uk-flex uk-flex-middle">
-        <img class="uk-margin-right" width="50" height="50" alt="{{ package.title }}" v-attr="src: package | icon" v-if="package.extra.icon">
+        <img class="uk-margin-right" width="50" height="50" :alt="package.title" :src="package | icon" v-if="package.extra.icon">
+
         <div class="uk-flex-item-1">
             <h2 class="uk-margin-small-bottom">{{ package.title }}</h2>
             <ul class="uk-subnav uk-subnav-line uk-margin-bottom-remove">
@@ -12,22 +13,25 @@
     </div>
 
     <div class="uk-alert uk-alert-danger" v-show="messages.checksum">
-        {{ 'The checksum of the uploaded package does not match the one from the marketplace. The file might be manipulated.' | trans }}
+        {{ 'The checksum of the uploaded package does not match the one from the marketplace. The file might be
+        manipulated.' | trans }}
     </div>
 
     <div class="uk-alert" v-show="messages.update">
-        {{ 'There is an update available for the uploaded package. Please consider installing it instead.' | trans }}
+        {{ 'There is an update available for the package.' | trans }}
     </div>
 
     <p>{{ package.description }}</p>
 
     <ul class="uk-list">
         <li v-if="package.license"><strong>{{ 'License:' | trans }}</strong> {{ package.license }}</li>
-        <li v-if="package.authors[0].homepage"><strong>{{ 'Homepage:' | trans }}</strong> <a href="{{ package.authors[0].homepage }}" target="_blank">{{ package.authors[0].homepage }}</a></li>
-        <li v-if="package.authors[0].email"><strong>{{ 'Email:' | trans }}</strong> <a href="mailto:{{ package.authors[0].email }}">{{ package.authors[0].email }}</a></li>
+        <li v-if="package.authors[0].homepage"><strong>{{ 'Homepage:' | trans }}</strong>
+            <a :href="package.authors[0].homepage" target="_blank">{{ package.authors[0].homepage }}</a></li>
+        <li v-if="package.authors[0].email"><strong>{{ 'Email:' | trans }}</strong>
+            <a href="mailto:{{ package.authors[0].email }}">{{ package.authors[0].email }}</a></li>
     </ul>
 
-    <img width="800" height="600" alt="{{ package.title }}" v-attr="src: package | image" v-if="package.extra.image">
+    <img width="800" height="600" :alt="package.title" :src="package | image" v-if="package.extra.image">
 
 </template>
 
@@ -37,16 +41,21 @@
 
     module.exports = {
 
-        mixins: [
-            require('../lib/package')
-        ],
-
-        props: ['api', 'package'],
+        props: {
+            api: {
+                type: String,
+                default: ''
+            },
+            package: {
+                type: Object,
+                default: function () {
+                    return {};
+                }
+            }
+        },
 
         data: function () {
             return {
-                api: '',
-                package: {},
                 messages: {}
             };
         },
@@ -83,36 +92,52 @@
 
         watch: {
 
-            package: function () {
+            package: {
 
-                if (!this.package.name) {
-                    return;
-                }
+                handler: function () {
 
-                if (_.isArray(this.package.authors)) {
-                    this.package.$add('author', this.package.authors[0]);
-                }
-
-                this.$set('messages', {});
-
-                this.queryPackage(this.package, function (data) {
-
-                    var version = this.package.version, pkg = data.versions[version];
-
-                    // verify checksum
-                    if (pkg && this.package.shasum) {
-                        this.messages.$set('checksum', pkg.dist.shasum != this.package.shasum);
+                    if (!this.package.name) {
+                        return;
                     }
 
-                    // check version
-                    _.each(data.versions, function (pkg) {
-                        if (Version.compare(pkg.version, version, '>')) {
-                            version = pkg.version;
-                        }
-                    });
+                    if (_.isArray(this.package.authors)) {
+                        this.package.author = this.package.authors[0];
+                    }
 
-                    this.messages.$set('update', version != this.package.version);
-                });
+                    this.$set('messages', {});
+
+                    this.queryPackage(this.package, function (res) {
+                        var data = res.data;
+
+                        var version = this.package.version, pkg = data.versions[version];
+
+                        // verify checksum
+                        if (pkg && this.package.shasum) {
+                            this.$set('messages.checksum', pkg.dist.shasum != this.package.shasum);
+                        }
+
+                        // check version
+                        _.each(data.versions, function (pkg) {
+                            if (Version.compare(pkg.version, version, '>')) {
+                                version = pkg.version;
+                            }
+                        });
+
+                        this.$set('messages.update', version != this.package.version);
+                    });
+                },
+
+                immediate: true
+
+            }
+        },
+
+        methods: {
+
+            queryPackage: function (pkg, success) {
+                return this.$http.get(this.api + '/api/package/{+name}', {
+                    name: _.isObject(pkg) ? pkg.name : pkg
+                }).then(success, this.error);
             }
 
         }

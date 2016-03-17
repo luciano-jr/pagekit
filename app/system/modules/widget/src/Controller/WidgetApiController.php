@@ -15,7 +15,21 @@ class WidgetApiController
      */
     public function indexAction()
     {
-        return array_values(Widget::findAll());
+        $widgets = Widget::findAll();
+        $positions = App::position()->all();
+
+        foreach ($positions as &$position) {
+            $position['widgets'] = [];
+
+            foreach ($position['assigned'] as $id) {
+                if (isset($widgets[$id])) {
+                    $position['widgets'][] = $widgets[$id];
+                    unset($widgets[$id]);
+                }
+            }
+        }
+
+        return ['positions' => array_values($positions), 'unassigned' => array_values($widgets)];
     }
 
     /**
@@ -37,7 +51,7 @@ class WidgetApiController
     {
         App::position()->assign($position, $ids);
 
-        return ['message' => 'success', 'positions' => array_values(App::position()->all())];
+        return ['message' => 'success'];
     }
 
     /**
@@ -89,12 +103,11 @@ class WidgetApiController
                 $copy->id = null;
                 $copy->status = 0;
                 $copy->title = $widget->title.' - '.__('Copy');
-                $copy->position = $widget->position;
                 $copy->save();
             }
         }
 
-        return ['message' => 'success', 'positions' => array_values(App::position()->all())];
+        return ['message' => 'success'];
     }
 
     /**
@@ -107,7 +120,7 @@ class WidgetApiController
             $this->saveAction($data, isset($data['id']) ? $data['id'] : 0);
         }
 
-        return ['message' => 'success', 'positions' => array_values(App::position()->all())];
+        return ['message' => 'success'];
     }
 
     /**

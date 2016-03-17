@@ -1,9 +1,23 @@
 <template>
 
-    <div class="uk-form-select pk-filter">
+    <div class="uk-form-select pk-filter" :class="{'uk-active': value }">
         <span>{{ label }}</span>
-        <select v-if="isNumber" v-model="value" options="list" number></select>
-        <select v-if="!isNumber" v-model="value" options="list"></select>
+        <select v-if="isNumber" v-model="value" number>
+            <template v-for="option in list">
+                <optgroup :label="option.label" v-if="option.label">
+                    <option v-for="opt in option.options" :value="opt.value">{{ opt.text }}</option>
+                </optgroup>
+                <option :value="option.value" v-else>{{ option.text }}</option>
+            </template>
+        </select>
+        <select v-else v-model="value">
+            <template v-for="option in list">
+                <optgroup :label="option.label" v-if="option.label">
+                    <option v-for="opt in option.options" :value="opt.value">{{ opt.text }}</option>
+                </optgroup>
+                <option :value="option.value" v-else>{{ option.text }}</option>
+            </template>
+        </select>
     </div>
 
 </template>
@@ -13,6 +27,12 @@
     module.exports = {
 
         props: ['title', 'value', 'options', 'number'],
+
+        created: function () {
+            if (this.value === undefined) {
+                this.value = '';
+            }
+        },
 
         computed: {
 
