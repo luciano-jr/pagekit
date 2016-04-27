@@ -1,6 +1,97 @@
 # Changelog
 
-## 0.10.4 (March 1 2016)
+## 1.0.2 (April 22, 2016)
+
+### Fixed
+- Fixed notice when og:image in site meta settings not defined
+
+## 1.0.1 (April 21, 2016)
+
+### Added
+- Added OpenGraph image option for site nodes
+- Added file extension check for storage uploads
+- Added maintenance logo option
+- Added cache break for language file
+
+### Changed
+- Smoothed packages updates
+- Optimized .htaccess
+
+### Fixed
+- Fixed save shortcut in Firefox
+- Fixed reordering in site tree
+- Fixed missing territory data
+- Fixed redirect after login
+- Fixed missing initial active state at pagination
+- Fixed duplicated request occasionally caused by pagination
+
+## 1.0.0 (April 13, 2016)
+
+### Fixed
+- Temporarily fixed menu params bug
+
+## 0.11.3 (April 7, 2016)
+
+### Fixed
+- Fixed blank widget settings page
+- Fixed missing marketplace icons
+- Fixed RFC 3986 encoding of static URLs
+- Fixed render params
+- Fixed CLI command enables extensions
+- Fixed db prefix check in installer
+- Fixed different prefixes with SQLLite
+- Fixed SQLite collations
+
+### Removed
+- Removed Guzzle dependency
+
+### Changed
+- CLI setup command requires admin password to be specified
+
+## 0.11.2 (April 1, 2016)
+
+### Fixed
+- Fixed missing extension icons
+
+## 0.11.1 (April 1, 2016)
+
+### Changed
+- Dashboard: Use drag handle
+
+### Fixed
+- Fixed wrapping sidebar if content in main column is to large
+- Fixed adding of new images in editor
+
+## 0.11.0 (March 30, 2016)
+
+### Added
+- Added OpenGraph and Twitter Cards
+- Added CLI command to setup Pagekit installation
+- Added redirect after login to user settings
+- Added view.init event
+- Added global params object to view
+- Added file picker
+- Added support for script tag attributes 'defer' and 'async'
+
+### Changed
+- Transfer widget and menu positions on theme change
+- Image-, video-, link-picker: Preserve existing attributes
+- Video-picker: Switched from shortcodes to html representation
+- Video-picker: Improved URL matching
+- Link preview: Support for html
+- Editor preview: Remove script and style tags
+- Installer: SQLite is now default
+- Installer: Show SQLite only if available
+- SelfUpdater: Check new requirements before update
+- Removed system messages from template.php
+
+### Fixed
+- Fixed info page for high directory depths
+- Fixed overflow container in modals
+- Fixed password reset link
+- Fixed canonical links
+
+## 0.10.4 (March 1, 2016)
 
 ### Added
 - Added filter cache for lists and searches
@@ -33,13 +124,13 @@
 - Fixed selecting items at site tree and widget settings
 - Fixed image picker in editor now keeps class attributes
 - Fixed ExceptionHandler response
-- Fixed an issue which could lead to an open_basedir restriction exception 
+- Fixed an issue which could lead to an open_basedir restriction exception
 - Fixed registration verification mail
 - Fixed user authenticated role assignment
 - Fixed package upload zip verification
 - Fixed single quote issue by using RFC4627-compliant JSON within embedded script tags (#551)
 
-## 0.10.3 (February 19 2016)
+## 0.10.3 (February 19, 2016)
 
 ### Changed
 - Increased package installation speed by disabling usage of Packagist repository (Pagekit API now provides a subset of required Packagist dependencies)

@@ -2,10 +2,9 @@
 
 namespace Pagekit\Installer\Controller;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\TransferException;
 use Pagekit\Application as App;
 use Pagekit\Installer\SelfUpdater;
+use Symfony\Component\Console\Output\StreamOutput;
 
 /**
  * @Access("system: software updates", admin=true)
@@ -32,31 +31,14 @@ class UpdateController
      */
     public function downloadAction($url)
     {
-        try {
+        $file = tempnam(App::get('path.temp'), 'update_');
+        App::session()->set('system.update', $file);
 
-            $file = tempnam(App::get('path.temp'), 'update_');
-            App::session()->set('system.update', $file);
-
-            $client = new Client;
-
-            $data = $client->get($url)->getBody();
-
-            if (!file_put_contents($file, $data)) {
-                throw new \RuntimeException('Path is not writable.');
-            }
-
-            return [];
-
-        } catch (\Exception $e) {
-
-            if ($e instanceof TransferException) {
-                $error = 'Package download failed.';
-            } else {
-                $error = $e->getMessage();
-            }
-
-            App::abort(500, $error);
+        if (!file_put_contents($file, @fopen($url, 'r'))) {
+            App::abort(500, 'Download failed or Path not writable.');
         }
+
+        return [];
     }
 
     /**
@@ -70,20 +52,19 @@ class UpdateController
         App::session()->remove('system.update');
 
         return App::response()->stream(function () use ($file) {
-
+            $output = new StreamOutput(fopen('php://output', 'w'));
             try {
 
                 if (!file_exists($file) || !is_file($file)) {
                     throw new \RuntimeException('File does not exist.');
                 }
 
-                $updater = new SelfUpdater();
+                $updater = new SelfUpdater($output);
                 $updater->update($file);
 
             } catch (\Exception $e) {
-
-                http_response_code(400);
-                echo $e->getMessage();
+                $output->writeln(sprintf("\n<error>%s</error>", $e->getMessage()));
+                $output->write("status=error");
             }
 
         });

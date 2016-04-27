@@ -16,10 +16,13 @@ class AuthController
      */
     public function loginAction($redirect = '')
     {
-        if (App::user()->isAuthenticated()) {
-            App::message()->info(__('You are already logged in.'));
-            return App::redirect();
+        if (!$redirect) {
+            $redirect = App::url(App::config('system/user')['login_redirect']);
         }
+
+		if (App::user()->isAuthenticated()) {
+			return App::redirect($redirect);
+		}
 
         return [
             '$view' => [

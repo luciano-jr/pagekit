@@ -132,6 +132,7 @@ return [
         'registration' => 'admin',
         'require_verification' => true,
         'users_per_page' => 20,
+        'login_redirect' => '', // use route syntax, i.e. @page/1. empty string for index
 
         'auth' => [
             'refresh_token' => false
@@ -155,6 +156,12 @@ return [
                 $scripts->register('widget-user', 'system/user:app/bundle/widget-user.js', '~dashboard');
             }
             $scripts->register('link-user', 'system/user:app/bundle/link-user.js', '~panel-link');
+        },
+
+        'admin' => function () use ($app) {
+            $app->on('view.scripts', function($event, $scripts) {
+                $scripts('auth', 'system/user:app/bundle/interceptor.js', ['vue']);
+            });
         }
 
     ]

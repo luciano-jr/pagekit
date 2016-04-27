@@ -35,12 +35,12 @@ window.Dashboard = {
 
     ready: function () {
 
-        var self = this, list, startindex;
+        var self = this;
 
         // widget re-ordering
         var sortables = $(this.$el).find('.uk-sortable[data-column]').each(function () {
 
-            UIkit.sortable(this, {group: 'widgets', dragCustomClass: 'pk-sortable-dragged-panel'});
+            UIkit.sortable(this, {group: 'widgets', dragCustomClass: 'pk-sortable-dragged-panel', handleClass: 'pk-icon-handle'});
 
         }).on('change.uk.sortable', function (e, sortable, item, mode) {
 

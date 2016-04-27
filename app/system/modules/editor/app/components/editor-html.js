@@ -27,10 +27,15 @@ module.exports = {
                 .on('htmleditor-save', function (e, editor) {
                     if (editor.element[0].form) {
                         var event = document.createEvent('HTMLEvents');
-                        event.initEvent('submit', true, false);
+                        event.initEvent('submit', true, true);
                         editor.element[0].form.dispatchEvent(event);
                     }
                 });
+
+            editor.on('render', function () {
+                var regexp = /<script(.*)>[^<]+<\/script>|<style(.*)>[^<]+<\/style>/gi;
+                editor.replaceInPreview(regexp, '');
+            });
 
             this.$watch('$parent.value', function (value) {
                 if (value != editor.editor.getValue()) {

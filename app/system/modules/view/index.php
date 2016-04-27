@@ -1,5 +1,6 @@
 <?php
 
+use Pagekit\Util\ArrObject;
 use Pagekit\View\Event\ResponseListener;
 
 return [
@@ -7,14 +8,6 @@ return [
     'name' => 'system/view',
 
     'main' => function ($app) {
-
-        $app->extend('view', function ($view) use ($app) {
-
-            $view->defer('head');
-            $view->meta(['generator' => 'Pagekit']);
-
-            return $view;
-        });
 
         $app->extend('twig', function ($twig) use ($app) {
 
@@ -48,15 +41,15 @@ return [
 
         'site' => function ($event, $app) {
             $app->on('view.meta', function ($event, $meta) use ($app) {
-
-                $route = $app['url']->get($app['request']->attributes->get('_route'), $app['request']->attributes->get('_route_params', []), true);
-
-                if ($route != $app['request']->getSchemeAndHttpHost().$app['request']->getRequestUri()) {
-                    $meta->add('canonical', $route);
-                }
-
-            });
+                $meta->add('canonical', $app['url']->get($app['request']->attributes->get('_route'), $app['request']->attributes->get('_route_params', []), 0));
+            }, 60);
         },
+
+        'view.init' => [function ($event, $view) {
+            $view->defer('head');
+            $view->meta(['generator' => 'Pagekit']);
+            $view->addGlobal('params', new ArrObject());
+        }, 20],
 
         'view.data' => function ($event, $data) use ($app) {
             $data->add('$pagekit', [
@@ -93,7 +86,7 @@ return [
             $scripts->register('uikit-timepicker', 'app/assets/uikit/js/components/timepicker.js', 'uikit-autocomplete');
             $scripts->register('vue', 'app/system/app/bundle/vue.js', ['vue-dist', 'jquery', 'lodash', 'locale']);
             $scripts->register('vue-dist', 'app/assets/vue/dist/' . ($app->debug() ? 'vue.js' : 'vue.min.js'));
-            $scripts->register('locale', $app->url('@system/intl', ['locale' => $app->module('system/intl')->getLocale()]), [], ['type' => 'url']);
+            $scripts->register('locale', $app->url('@system/intl', ['locale' => $app->module('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), [], ['type' => 'url']);
         }
 
     ]

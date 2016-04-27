@@ -3,6 +3,7 @@
 use Pagekit\Site\Event\MaintenanceListener;
 use Pagekit\Site\Event\NodesListener;
 use Pagekit\Site\Event\PageListener;
+use Pagekit\Site\MenuHelper;
 use Pagekit\Site\Model\Node;
 
 return [
@@ -110,6 +111,7 @@ return [
 
         'maintenance' => [
             'enabled' => false,
+            'logo' => '',
             'msg' => ''
         ],
 
@@ -161,14 +163,57 @@ return [
                 $event->addResult($this->config('code.footer'));
             }, -10);
 
-            $app->on('view.layout', function ($event) use ($app) {
-                $event
-                    ->addParameters($this->config('view'))
-                    ->addParameters($app['theme']->config)
-                    ->addParameters($app['node']->theme);
+            $app->on('view.init', function ($event, $view) use ($app) {
+                $view->params->set('title', $this->config('title'));
+                $view->params->merge($this->config('view'));
+                $view->params->merge($app['theme']->config);
+                $view->params->merge($app['node']->theme);
+            }, 10);
+
+            $app->on('view.meta', function ($event, $meta) use ($app) {
+
+                $config = $app->config('system/site');
+
+                $meta([
+                    'twitter:card' => 'summary_large_image',
+                    'twitter:site' => $config->get('meta.twitter'),
+                    'fb:app_id' => $config->get('meta.facebook'),
+                    'og:site_name' => $config->get('title'),
+                    'og:title' => $app['node']->title,
+                    'og:image' => $config->get('meta.image') ? $app['url']->getStatic($config->get('meta.image'), [], 0) : false,
+                    'og:description' => $config->get('meta.description'),
+                    'og:url' => $meta->get('canonical'),
+                ]);
+
+				if ($config = $app['node']->get('meta')) {
+
+					if (!empty($config['og:image'])) {
+                        $config['og:image'] = $app['url']->getStatic($config['og:image'], [], 0);
+                    }
+
+                    $meta($config);
+                }
+
             }, 50);
 
         },
+
+        'package.enable' => function ($event, $package) use ($app) {
+            if ($package->getType() === 'pagekit-theme') {
+                $new = $app->config($package->get('module'));
+                $old = $app->config($app['theme']->name);
+
+                foreach ((array) $old->get('_menus') as $menu => $position) {
+                    if (!$new->has('_menus.' . $menu)) {
+                        $new->set('_menus.' . $menu, $position);
+                    }
+                }
+            }
+        },
+
+        'view.init' => [function ($event, $view) use ($app) {
+            $view->addHelper(new MenuHelper($app['menu']));
+        }, 100],
 
         'view.meta' => function ($event, $meta) use ($app) {
 
@@ -191,6 +236,7 @@ return [
             $scripts->register('input-tree', 'system/site:app/bundle/input-tree.js', 'vue');
             $scripts->register('link-page', 'system/site:app/bundle/link-page.js', '~panel-link');
             $scripts->register('node-page', 'system/site:app/bundle/node-page.js', ['~site-edit', 'editor']);
+            $scripts->register('node-meta', 'system/site:app/bundle/node-meta.js', '~site-edit');
         },
 
         'model.node.saved' => function ($event, $node) use ($app) {
