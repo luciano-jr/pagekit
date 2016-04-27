@@ -1,6 +1,6 @@
 <template>
 
-    <div class="uk-form" data-uk-observe v-show="items">
+    <div class="uk-form" v-show="items">
 
         <div class="uk-margin uk-flex uk-flex-space-between uk-flex-wrap" data-uk-margin>
             <div class="uk-flex uk-flex-middle uk-flex-wrap" data-uk-margin>
@@ -38,10 +38,10 @@
 
                 <div>
                     <button class="uk-button uk-margin-small-right" @click.prevent="createFolder()">{{ 'Add Folder' | trans }}</button>
-                    <span class="uk-button uk-form-file" :class="{'uk-button-primary': !modal}">
-                        {{ 'Upload' | trans }}
+                    <div class="uk-form-file">
+                        <button class="uk-button" :class="{'uk-button-primary': !modal}">{{ 'Upload' | trans }}</button>
                         <input type="file" name="files[]" multiple="multiple">
-                    </span>
+                    </div>
                 </div>
 
             </div>
@@ -112,8 +112,6 @@
             this.load().then(function () {
                 this.$dispatch('ready.finder', this);
             });
-
-            UIkit.init(this.$el);
         },
 
         watch: {

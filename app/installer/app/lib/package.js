@@ -1,5 +1,6 @@
 var Install = Vue.extend(require('./install.vue'));
 var Uninstall = Vue.extend(require('./uninstall.vue'));
+var Update = Vue.extend(require('./update.vue'));
 
 module.exports = {
 
@@ -22,7 +23,7 @@ module.exports = {
             return this.$http.post('admin/system/package/enable', {name: pkg.name}).then(function () {
                     this.$notify(this.$trans('"%title%" enabled.', {title: pkg.title}));
                     Vue.set(pkg, 'enabled', true);
-                    document.location.reload();
+                    document.location.assign(this.$url('admin/system/package/' + (pkg.type === 'pagekit-theme' ? 'themes' : 'extensions')));
                 }, this.error);
         },
 
@@ -39,6 +40,12 @@ module.exports = {
             var install = new Install({parent: this});
 
             return install.install(pkg, packages, onClose, packagist);
+        },
+
+        update: function (pkg, updates, onClose, packagist) {
+            var update = new Update({parent: this});
+
+            return update.update(pkg, updates, onClose, packagist);
         },
 
         uninstall: function (pkg, packages) {

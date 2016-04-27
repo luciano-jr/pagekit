@@ -2,14 +2,14 @@
 
     <div>
 
-        <div class="uk-grid uk-grid-medium uk-grid-match uk-grid-width-small-1-2 uk-grid-width-xlarge-1-3" data-uk-grid-margin id="123">
+        <div class="uk-grid uk-grid-medium uk-grid-match uk-grid-width-small-1-2 uk-grid-width-xlarge-1-3" data-uk-grid-margin="observe:true">
             <div v-for="pkg in packages">
                 <div class="uk-panel uk-panel-box uk-overlay-hover">
 
                     <div class="uk-panel-teaser">
                         <div class="uk-overlay uk-display-block">
-                            <div class="uk-cover-background uk-position-cover" :style="{'background-image': 'url('+pkg.extra.image+')'}"></div>
-                            <canvas class="uk-responsive-width uk-display-block" width="800" height="550"></canvas>
+                            <div class="uk-cover-background uk-position-cover" :style="{ 'background-image': 'url(' + pkg.extra.image + ')' }"></div>
+                            <canvas class="uk-responsive-width uk-display-block" width="1200" height="800"></canvas>
                             <div class="uk-overlay-panel uk-overlay-background pk-overlay-background uk-overlay-fade"></div>
                         </div>
                     </div>
@@ -45,7 +45,7 @@
 
                 <div class="uk-grid">
                     <div class="uk-width-medium-1-2">
-                        <img width="800" height="600" :alt="pkg.title" :src="pkg.extra.image">
+                        <img width="1200" height="800" :alt="pkg.title" :src="pkg.extra.image">
                     </div>
                     <div class="uk-width-medium-1-2">
 
@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        <h3 class="uk-h1 uk-text-muted uk-text-center" v-show="!packages.length">{{ 'Nothing found.' | trans }}</h3>
+        <h3 class="uk-h1 uk-text-muted uk-text-center" v-show="packages && !packages.length">{{ 'Nothing found.' | trans }}</h3>
 
         <p class="uk-alert uk-alert-warning" v-show="status == 'error'">{{ 'Cannot connect to the marketplace. Please try again later.' | trans }}</p>
 
@@ -107,7 +107,9 @@
         },
 
         ready: function () {
-            this.query(this.page);
+
+            this.$watch('page', this.query, {immediate: true});
+
             this.queryUpdates(this.installed, function (res) {
                 var data = res.data;
                 this.$set('updates', data.packages.length ? data.packages : null);
@@ -117,31 +119,30 @@
         watch: {
 
             search: function () {
-                this.query();
+                if (this.page) {
+                    this.page = 0;
+                } else {
+                    this.query();
+                }
             },
 
             type: function () {
-                this.query();
-            },
-
-            page: function (page, old) {
-
-                if (page == old || (!old && !page)) {
-                    return;
+                if (this.page) {
+                    this.page = 0;
+                } else {
+                    this.query();
                 }
-
-                this.query(page);
             }
 
         },
 
         methods: {
 
-            query: function (page) {
+            query: function () {
 
                 var url = this.api + '/api/package/search', options = {emulateJSON: true};
 
-                this.$http.post(url, {q: this.search, type: this.type, page: page || 0}, options).then(function (res) {
+                this.$http.post(url, {q: this.search, type: this.type, page: this.page}, options).then(function (res) {
                             var data = res.data;
                             this.$set('packages', data.packages);
                             this.$set('pages', data.pages);

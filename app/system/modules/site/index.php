@@ -111,6 +111,7 @@ return [
 
         'maintenance' => [
             'enabled' => false,
+            'logo' => '',
             'msg' => ''
         ],
 
@@ -163,6 +164,7 @@ return [
             }, -10);
 
             $app->on('view.init', function ($event, $view) use ($app) {
+                $view->params->set('title', $this->config('title'));
                 $view->params->merge($this->config('view'));
                 $view->params->merge($app['theme']->config);
                 $view->params->merge($app['node']->theme);
@@ -174,6 +176,8 @@ return [
 
                 $meta([
                     'twitter:card' => 'summary_large_image',
+                    'twitter:site' => $config->get('meta.twitter'),
+                    'fb:app_id' => $config->get('meta.facebook'),
                     'og:site_name' => $config->get('title'),
                     'og:title' => $app['node']->title,
                     'og:image' => $config->get('meta.image') ? $app['url']->getStatic($config->get('meta.image'), [], 0) : false,
@@ -181,8 +185,13 @@ return [
                     'og:url' => $meta->get('canonical'),
                 ]);
 
-                if ($app['node']->get('meta')) {
-                    $meta($app['node']->get('meta'));
+				if ($config = $app['node']->get('meta')) {
+
+					if (!empty($config['og:image'])) {
+                        $config['og:image'] = $app['url']->getStatic($config['og:image'], [], 0);
+                    }
+
+                    $meta($config);
                 }
 
             }, 50);
